@@ -1,7 +1,9 @@
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Image
+import androidx.compose.material.Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +30,7 @@ import shared.PermissionCallback
 import shared.PermissionStatus
 import shared.PermissionType
 import shared.createPermissionsManager
+import shared.location.Location
 import shared.rememberCameraManager
 import shared.rememberGalleryManager
 
@@ -40,8 +43,11 @@ fun App() {
         var imageSourceOptionDialog by remember { mutableStateOf(value = false) }
         var launchCamera by remember { mutableStateOf(value = false) }
         var launchGallery by remember { mutableStateOf(value = false) }
+        var locationEnabled by remember { mutableStateOf(value = false) }
         var launchSetting by remember { mutableStateOf(value = false) }
         var permissionRationalDialog by remember { mutableStateOf(value = false) }
+        var location by remember { mutableStateOf("") }
+
         val permissionsManager = createPermissionsManager(object : PermissionCallback {
             override fun onPermissionStatus(
                 permissionType: PermissionType,
@@ -52,6 +58,9 @@ fun App() {
                         when (permissionType) {
                             PermissionType.CAMERA -> launchCamera = true
                             PermissionType.GALLERY -> launchGallery = true
+                            PermissionType.LOCATION_SERVICE_ON,
+                            PermissionType.LOCATION_FOREGROUND,
+                            PermissionType.LOCATION_BACKGROUND -> locationEnabled = true
                         }
                     }
 
@@ -60,9 +69,9 @@ fun App() {
                     }
                 }
             }
-
-
         })
+
+        permissionsManager.askPermission(PermissionType.LOCATION_FOREGROUND)
 
         val cameraManager = rememberCameraManager {
             coroutineScope.launch {
@@ -70,6 +79,11 @@ fun App() {
                     it?.toImageBitmap()
                 }
                 imageBitmap = bitmap
+                if (locationEnabled) {
+                    Location.currentLocation {
+                        location = it.toString()
+                    }
+                }
             }
         }
 
@@ -79,6 +93,11 @@ fun App() {
                     it?.toImageBitmap()
                 }
                 imageBitmap = bitmap
+                if (locationEnabled) {
+                    Location.currentLocation {
+                        location = it.toString()
+                    }
+                }
             }
         }
         if (imageSourceOptionDialog) {
@@ -127,28 +146,31 @@ fun App() {
                 })
 
         }
-        Box(
-            modifier = Modifier.fillMaxSize().background(Color.DarkGray),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.fillMaxSize().background(Color.White),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceAround
         ) {
             if (imageBitmap != null) {
                 Image(
                     bitmap = imageBitmap!!,
                     contentDescription = "Profile",
-                    modifier = Modifier.size(100.dp).clip(CircleShape).clickable {
+                    modifier = Modifier.size(200.dp).clip(CircleShape).clickable {
                         imageSourceOptionDialog = true
                     },
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Image(
-                    modifier = Modifier.size(100.dp).clip(CircleShape).clickable {
+                    modifier = Modifier.size(200.dp).clip(CircleShape).clickable {
                         imageSourceOptionDialog = true
                     },
                     painter = painterResource("ic_person_circle.xml"),
                     contentDescription = "Profile",
                 )
             }
+
+            Text(location)
         }
     }
 }

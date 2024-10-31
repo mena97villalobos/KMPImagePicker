@@ -28,11 +28,12 @@ kotlin {
     }
     
     sourceSets {
-        
         androidMain.dependencies {
             implementation(libs.compose.ui.tooling.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.accompanist.permissions)
+            implementation(libs.google.location)
+            implementation(libs.androidx.startup)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -41,6 +42,9 @@ kotlin {
             implementation(compose.ui)
             @OptIn(ExperimentalComposeLibrary::class)
             implementation(compose.components.resources)
+        }
+        iosMain.dependencies {
+            implementation(libs.atomicfu)
         }
     }
 }

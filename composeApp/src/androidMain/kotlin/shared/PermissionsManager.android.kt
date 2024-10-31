@@ -58,6 +58,30 @@ actual class PermissionsManager actual constructor(private val callback: Permiss
                     permission, PermissionStatus.GRANTED
                 )
             }
+
+            PermissionType.LOCATION_SERVICE_ON,
+            PermissionType.LOCATION_FOREGROUND,
+            PermissionType.LOCATION_BACKGROUND -> {
+                val cameraPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+                LaunchedEffect(cameraPermissionState) {
+                    val permissionResult = cameraPermissionState.status
+                    if (!permissionResult.isGranted) {
+                        if (permissionResult.shouldShowRationale) {
+                            callback.onPermissionStatus(
+                                permission, PermissionStatus.SHOW_RATIONAL
+                            )
+                        } else {
+                            lifecycleOwner.lifecycleScope.launch {
+                                cameraPermissionState.launchPermissionRequest()
+                            }
+                        }
+                    } else {
+                        callback.onPermissionStatus(
+                            permission, PermissionStatus.GRANTED
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -75,6 +99,13 @@ actual class PermissionsManager actual constructor(private val callback: Permiss
                 // Granted by default because in Android GetContent API does not require any
                 // runtime permissions, and i am using it to access gallery in my app
                 true
+            }
+
+            PermissionType.LOCATION_SERVICE_ON,
+            PermissionType.LOCATION_FOREGROUND,
+            PermissionType.LOCATION_BACKGROUND -> {
+                val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
+                locationPermissionState.status.isGranted
             }
         }
     }

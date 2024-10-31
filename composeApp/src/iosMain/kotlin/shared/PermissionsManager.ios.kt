@@ -10,6 +10,12 @@ import platform.AVFoundation.AVCaptureDevice
 import platform.AVFoundation.AVMediaTypeVideo
 import platform.AVFoundation.authorizationStatusForMediaType
 import platform.AVFoundation.requestAccessForMediaType
+import platform.CoreLocation.CLLocationManager
+import platform.CoreLocation.kCLAuthorizationStatusAuthorizedAlways
+import platform.CoreLocation.kCLAuthorizationStatusAuthorizedWhenInUse
+import platform.CoreLocation.kCLAuthorizationStatusDenied
+import platform.CoreLocation.kCLAuthorizationStatusNotDetermined
+import platform.CoreLocation.kCLAuthorizationStatusRestricted
 import platform.Foundation.NSURL
 import platform.Photos.PHAuthorizationStatus
 import platform.Photos.PHAuthorizationStatusAuthorized
@@ -26,6 +32,9 @@ actual fun createPermissionsManager(callback: PermissionCallback): PermissionsMa
 
 actual class PermissionsManager actual constructor(private val callback: PermissionCallback) :
     PermissionHandler {
+
+    private var locationManager = CLLocationManager()
+
     @Composable
     override fun askPermission(permission: PermissionType) {
         when (permission) {
@@ -41,6 +50,9 @@ actual class PermissionsManager actual constructor(private val callback: Permiss
                 askGalleryPermission(status, permission, callback)
             }
 
+            PermissionType.LOCATION_SERVICE_ON,
+            PermissionType.LOCATION_FOREGROUND,
+            PermissionType.LOCATION_BACKGROUND -> askLocationPermission(permission, callback)
         }
     }
 
@@ -94,6 +106,11 @@ actual class PermissionsManager actual constructor(private val callback: Permiss
         }
     }
 
+    private fun askLocationPermission(permission: PermissionType, callback: PermissionCallback) {
+        locationManager.requestWhenInUseAuthorization()
+        callback.onPermissionStatus(permission, if (isLocationPermissionEnabled()) PermissionStatus.GRANTED else PermissionStatus.DENIED)
+    }
+
     @Composable
     override fun isPermissionGranted(permission: PermissionType): Boolean {
         return when (permission) {
@@ -108,8 +125,23 @@ actual class PermissionsManager actual constructor(private val callback: Permiss
                     remember { PHPhotoLibrary.authorizationStatus() }
                 status == PHAuthorizationStatusAuthorized
             }
+
+            PermissionType.LOCATION_SERVICE_ON,
+            PermissionType.LOCATION_FOREGROUND,
+            PermissionType.LOCATION_BACKGROUND -> isLocationPermissionEnabled()
         }
     }
+
+    private fun isLocationPermissionEnabled() =
+        when (locationManager.authorizationStatus()) {
+            kCLAuthorizationStatusAuthorizedAlways,
+            kCLAuthorizationStatusAuthorizedWhenInUse,
+            kCLAuthorizationStatusRestricted -> true
+
+            kCLAuthorizationStatusNotDetermined -> false
+            kCLAuthorizationStatusDenied -> false
+            else -> false
+        }
 
     @Composable
     override fun launchSettings() {
